@@ -4,6 +4,35 @@
 from pathlib import Path
 import datetime
 from brats_toolkit.fusionator import Fusionator
+from multiprocessing import Pool
+
+def process_file(args):
+    i, filePath, N, challengePath, winners, outputPath, method, threadID = args
+    name = filePath.name
+    outputFilePath = outputPath.joinpath(name)
+    if outputFilePath.exists():
+        return
+    
+    print(f"[{threadID}]: Processing {name}")
+
+    segs = []
+    for winner in winners:
+        filePath = challengePath.joinpath(winner, name)
+        assert filePath.exists(), f"File does not exist: {filePath}"
+        segs.append(str(filePath))
+
+    fus = Fusionator(verbose=False)
+    try:
+        fus.fuse(
+            segmentations=segs,
+            outputPath=outputFilePath,
+            method=method,
+            weights=None,
+        )
+    except UnboundLocalError as e:
+        if "cannot access local variable 'bin_candidates' where it is not associated with a value" in str(e):
+            print(f"[{threadID}] \t{e}")
+            print(f"[{threadID}] \tSKIPPING {name}")
 
 def apply_fusionator(
         dataPath: Path,
@@ -13,6 +42,7 @@ def apply_fusionator(
         winners: list,
         method: str,
         outputFolder: str,
+        threads = 8 #threads
 ):
     # print parameters
     print(f"Applying fusionator to")
@@ -28,33 +58,22 @@ def apply_fusionator(
     
     outputPath = dataPath.joinpath(outputFolder, year, challenge, method, "+".join(winners))
     outputPath.mkdir(parents=True, exist_ok=True)
+
+    #Check if "PaxHeader" folder exists and use it instead of the main folder
+    if challengePath.joinpath(winners[0], "PaxHeader").exists():
+        imagesFolder = challengePath.joinpath(winners[0], "PaxHeader") #path to the folder where the images are in
+    else:
+        imagesFolder = challengePath.joinpath(winners[0])
     
-    fus = Fusionator(verbose=True) # instantiate
+    # For every file, fuse the winners segmentations
 
-    #For every file, fuse the winners segmentations
-    filePaths = list(challengePath.joinpath(winners[0]).iterdir()) # all winners should have all files
+    filePaths = list(imagesFolder.iterdir())
     N = len(filePaths)
-    for i,filePath in enumerate(filePaths):
-        name = filePath.name # Example: ._BraTS-GLI-00038-001.nii.gz
-        #print(f"\t{100*((i+1)/N):.4f} %)\t{i+1}/{N}\t{name}") #print progress
-        #print(filePath)
+    args = [(i, filePath, N, challengePath, winners, outputPath, method, threadID) for threadID, (i, filePath) in enumerate(enumerate(filePaths))]
 
-        #Get segementation files winner options
-        segs = [] # list of winner segementation files for the given name
-        for winner in winners:
-            filePath = challengePath.joinpath(winner, name)
-            assert filePath.exists(), f"File does not exist: {filePath}"
-            segs.append(str(filePath))
-
-        # Fuse winner options
-        outputFilePath = outputPath.joinpath(name)
-        fus.fuse(
-            segmentations=segs,
-            outputPath=outputFilePath,
-            method=method,
-            weights=None,
-        )
-        break # DEBUGGING: just do one file
+    with Pool(processes=threads) as pool:
+        for i, _ in enumerate(pool.imap_unordered(process_file, args), 1):
+            print(f"\t{100*((i+1)/N):.4f} %\t{i+1}/{N}", end='\r')
 
 winnerMapping = {
     "2023": {
@@ -68,7 +87,7 @@ winnerMapping = {
         #"BraTS-GEN": ["PolyU-AMA-Brain"],                              #TODO: what file is the correct one to unpack!?
         "BraTS-GLI": ["Faking_it", "kimbab", "MIST"],                  # TODO: TypeError: in method 'ImageFileWriter_SetFileName', argument 2 of type 'std::string const &'
         "BraTS-MEN-RT": ["nic-vicorob", "astraraki", "Faking_it"],     # TODO: TypeError: in method 'ImageFileWriter_SetFileName', argument 2 of type 'std::string const &'
-        "BraTS-MET": [],
+        #"BraTS-MET": [],
         "BraTS-PED": ["astaraki", "AIPNI", "Biomedia-MBZU"],            # TODO: TypeError: in method 'ImageFileWriter_SetFileName', argument 2 of type 'std::string const &'
         "BraTS-SSA": ["CNMC_PMI", "CUHK_RPAI", "Biomedia-MBZU"],        # TODO: TypeError: in method 'ImageFileWriter_SetFileName', argument 2 of type 'std::string const &'
     },
@@ -103,13 +122,15 @@ if __name__ == "__main__":
         for year, challenges in winnerMapping.items():
             for challenge, winners in challenges.items():
                 apply_fusionator(
-                    dataPath = Path("C:\\Users\\eva\\Desktop\\Helmholz_AI\\BraTS_Fusion\\data"),
+                    dataPath = Path("data\\"),
+                    #dataPath = Path("C:\\Users\\eva\\Desktop\\Helmholz_AI\\BraTS_Fusion\\data"),
                     inputFolder = "predictions",
                     year = year,
                     challenge = challenge,
                     winners = winners,
                     method = method,
                     outputFolder = "fused",
+                    threads = 12 #threads
                 )
                 print("\n\n")
 
