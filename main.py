@@ -5,15 +5,40 @@ from pathlib import Path
 import datetime
 from brats_toolkit.fusionator import Fusionator
 from multiprocessing import Pool
+import nibabel as nib
+import numpy as np
 
 def process_file(args):
     i, filePath, N, challengePath, winners, outputPath, method, threadID = args
     name = filePath.name
     outputFilePath = outputPath.joinpath(name)
     if outputFilePath.exists():
+
+        #read nii.gz file file to check if its broken
+        printPrefix = f"[{threadID}, {'/'.join(challengePath.parts[-2:])}/{name}]: " 
+       
+        #Check validaity of data
+        try:
+            img = nib.load(str(outputFilePath))
+            data = img.get_fdata()
+        except Exception as e:
+            print(f"{printPrefix}ERROR: broken (could not be loaded via nibabel)!")
+            print(f"{printPrefix}\t{e}")
+            return
+        
+        shape = data.shape
+        if data.shape != (240, 240, 155) and data.shape != (182, 218, 182):
+            print(f"{printPrefix}ERROR: shape {shape} instead of (240, 240, 155) or (182, 218, 182)!")
+            return
+        # NOTE: some chellanges have no shape constraints! e.g. 2024/BraTS-MEN-RT
+        
+        if np.count_nonzero(data) == 0:
+            #print(f"{printPrefix}ERROR: only zeros!")
+            return
+        
         return
     
-    print(f"[{threadID}]: Processing {name}")
+    print(f"{printPrefix} Processing...")
 
     segs = []
     for winner in winners:
@@ -42,17 +67,19 @@ def apply_fusionator(
         winners: list,
         method: str,
         outputFolder: str,
-        threads = 8 #threads
+        threads = 8, #threads
+        verbose = False
 ):
     # print parameters
-    print(f"Applying fusionator to")
-    print(f"\tdataPath: {dataPath}")
-    print(f"\tinputFolder: {inputFolder}")
-    print(f"\tyear: {year}")
-    print(f"\tchallenge: {challenge}")
-    print(f"\twinners: {winners}")
-    print(f"\tmethod: {method}")
-    print(f"\toutputFolder: {outputFolder}")
+    if(verbose):
+        print(f"Applying fusionator to")
+        print(f"\tdataPath: {dataPath}")
+        print(f"\tinputFolder: {inputFolder}")
+        print(f"\tyear: {year}")
+        print(f"\tchallenge: {challenge}")
+        print(f"\twinners: {winners}")
+        print(f"\tmethod: {method}")
+        print(f"\toutputFolder: {outputFolder}")
 
     challengePath = dataPath.joinpath(inputFolder, year, challenge) #path to the challenge folder where the winner folders are in
     
@@ -73,7 +100,7 @@ def apply_fusionator(
 
     with Pool(processes=threads) as pool:
         for i, _ in enumerate(pool.imap_unordered(process_file, args), 1):
-            print(f"\t{100*((i+1)/N):.4f} %\t{i+1}/{N}", end='\r')
+            print(f"\t{100*(i/N):.4f} %\t{i}/{N}", end='\r')
 
 winnerMapping = {
     "2023": {
@@ -90,7 +117,8 @@ winnerMapping = {
         #"BraTS-MET": [],
         "BraTS-PED": ["astaraki", "AIPNI", "Biomedia-MBZU"],            # TODO: TypeError: in method 'ImageFileWriter_SetFileName', argument 2 of type 'std::string const &'
         "BraTS-SSA": ["CNMC_PMI", "CUHK_RPAI", "Biomedia-MBZU"],        # TODO: TypeError: in method 'ImageFileWriter_SetFileName', argument 2 of type 'std::string const &'
-    },
+    }
+
     #"aggregate": { 
     #    "BraTS-GLI": ["2023\\Faking_it", "2023\\NVAUTO", "2023\\BiomedMBZ",
     #                  "2024\\Faking_it", "2024\\kimbab", "2024\\MIST"],
@@ -130,7 +158,8 @@ if __name__ == "__main__":
                     winners = winners,
                     method = method,
                     outputFolder = "fused",
-                    threads = 12 #threads
+                    threads = 12, #threads
+                    verbose = True
                 )
                 print("\n\n")
 
