@@ -104,19 +104,19 @@ def apply_fusionator(
 
 winnerMapping = {
     "2023": {
-        "BraTS-GLI": ["Faking_it", "NVAUTO", "BiomedMBZ"],        # TODO: ERROR: Unable to determine ImageIO reader
-        "BraTS-MEN": ["NVAUTO", "blackbean", "CNMC_PMI2023"],      # TODO: ERROR: Unable to determine ImageIO reader
-        "BraTS-MET": ["NVAUTO", "S_Y", "blackbean"],               # TODO: ERROR: Unable to determine ImageIO reader
-        "BraTS-PED": ["CNMC_PMI2023", "NVAUTO", "Sherlock_Zyb"],   # TODO: TypeError: in method 'ImageFileWriter_SetFileName', argument 2 of type 'std::string const &'
-        "BraTS-SSA": ["NVAUTO", "BraTS2023_SPARK_UNN", "blackbean"],# TODO: ERROR: Unable to determine ImageIO reader
+        "BraTS-GLI": ["Faking_it", "NVAUTO", "BiomedMBZ"],        
+        "BraTS-MEN": ["NVAUTO", "blackbean", "CNMC_PMI2023"],      
+        "BraTS-MET": ["NVAUTO", "S_Y", "blackbean"],               
+        "BraTS-PED": ["CNMC_PMI2023", "NVAUTO", "Sherlock_Zyb"],   
+        "BraTS-SSA": ["NVAUTO", "BraTS2023_SPARK_UNN", "blackbean"],
     },
     "2024": {
-        #"BraTS-GEN": ["PolyU-AMA-Brain"],                              #TODO: what file is the correct one to unpack!?
-        "BraTS-GLI": ["Faking_it", "kimbab", "MIST"],                  # TODO: TypeError: in method 'ImageFileWriter_SetFileName', argument 2 of type 'std::string const &'
-        "BraTS-MEN-RT": ["nic-vicorob", "astraraki", "Faking_it"],     # TODO: TypeError: in method 'ImageFileWriter_SetFileName', argument 2 of type 'std::string const &'
+        #"BraTS-GEN": ["PolyU-AMA-Brain"],                            
+        "BraTS-GLI": ["Faking_it", "kimbab", "MIST"],                 
+        "BraTS-MEN-RT": ["nic-vicorob", "astraraki", "Faking_it"],    
         #"BraTS-MET": [],
-        "BraTS-PED": ["astaraki", "AIPNI", "Biomedia-MBZU"],            # TODO: TypeError: in method 'ImageFileWriter_SetFileName', argument 2 of type 'std::string const &'
-        "BraTS-SSA": ["CNMC_PMI", "CUHK_RPAI", "Biomedia-MBZU"],        # TODO: TypeError: in method 'ImageFileWriter_SetFileName', argument 2 of type 'std::string const &'
+        "BraTS-PED": ["astaraki", "AIPNI", "Biomedia-MBZU"],           
+        "BraTS-SSA": ["CNMC_PMI", "CUHK_RPAI", "Biomedia-MBZU"],        
     }
 
     #"aggregate": { 
